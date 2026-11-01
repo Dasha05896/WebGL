@@ -5,6 +5,17 @@ let surface;                    // A surface model
 let shProgram;                  // A shader program
 let spaceball;                  // A SimpleRotator object that lets the user rotate the view by mouse.
 
+let lightAngle = 0;   // кут обертання джерела світла
+
+// множення матриці 4x4 (по стовпцях) на вектор
+function mulMat4Vec4(m, v) {
+    let r = [0, 0, 0, 0];
+    for (let i = 0; i < 4; i++) {
+        r[i] = m[i] * v[0] + m[4 + i] * v[1] + m[8 + i] * v[2] + m[12 + i] * v[3];
+    }
+    return r;
+}
+
 function deg2rad(angle) {
     return angle * Math.PI / 180;
 }
@@ -54,6 +65,13 @@ function draw() {
     let modelViewProjection = m4.multiply(projection, matAccum1 );
 
     gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection );
+        gl.uniformMatrix4fv(shProgram.iModelViewMatrix, false, matAccum1);
+
+    // світло рухається по колу, координати множимо на ModelView
+    const lightR = 2.5;
+    let lightPos = mulMat4Vec4(matAccum1,
+        [lightR * Math.cos(lightAngle), lightR * Math.sin(lightAngle), 1.5, 1.0]);
+    gl.uniform3fv(shProgram.iLightPosition, [lightPos[0], lightPos[1], lightPos[2]]);
     
     /* Draw the six faces of a cube, with different colors. */
     gl.uniform4fv(shProgram.iColor, [1,1,0,1] );
@@ -72,9 +90,12 @@ function initGL() {
     shProgram.iAttribVertex              = gl.getAttribLocation(prog, "vertex");
     shProgram.iModelViewProjectionMatrix = gl.getUniformLocation(prog, "ModelViewProjectionMatrix");
     shProgram.iColor                     = gl.getUniformLocation(prog, "color");
+    shProgram.iAttribNormal    = gl.getAttribLocation(prog, "normal");
+    shProgram.iModelViewMatrix = gl.getUniformLocation(prog, "ModelViewMatrix");
+    shProgram.iLightPosition   = gl.getUniformLocation(prog, "lightPosition");
 
     surface = new Model('Surface');
-    surface.BuildGeometry();
+    surface.BuildGeometry(30, 30);
 
     gl.enable(gl.DEPTH_TEST);
 }
@@ -138,7 +159,24 @@ function init() {
         return;
     }
 
-    spaceball = new TrackballRotator(canvas, draw, 0);
+        spaceball = new TrackballRotator(canvas, draw, 0);
 
-    draw();
+    // повзунки
+    const uSlider = document.getElementById("uSlider");
+    const vSlider = document.getElementById("vSlider");
+    function onSliderChange() {
+        document.getElementById("uValue").textContent = uSlider.value;
+        document.getElementById("vValue").textContent = vSlider.value;
+        surface.BuildGeometry(parseInt(uSlider.value), parseInt(vSlider.value));
+    }
+    uSlider.addEventListener("input", onSliderChange);
+    vSlider.addEventListener("input", onSliderChange);
+
+    // анімація: світло обертається
+    function animate(time) {
+        lightAngle = time * 0.001;
+        draw();
+        requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
 }

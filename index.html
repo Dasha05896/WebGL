@@ -2,7 +2,7 @@
 <html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 
-<title>PA#1</title>
+<title>PA#2</title>
 <style>
     body {
         background-color: #EEEEEE;
@@ -23,6 +23,13 @@
 <p id="message">Drag your mouse on the surface to rotate it.<br>
 (On a touch screen, you can use your finger.)</p>
 
+<div>
+    U: <input type="range" id="uSlider" min="4" max="100" value="30">
+    <span id="uValue">30</span>
+    &nbsp;&nbsp;
+    V: <input type="range" id="vSlider" min="4" max="100" value="30">
+    <span id="vValue">30</span>
+</div>
 
 <div id="canvas-holder">
    <canvas width="600" height="600" id="webglcanvas" style="background-color:red"></canvas>

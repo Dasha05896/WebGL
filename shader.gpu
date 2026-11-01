@@ -1,16 +1,37 @@
-
-
-// Vertex shader
+// Vertex shader (тут рахується освітлення за Гуро)
 const vertexShaderSource = `
 attribute vec3 vertex;
+attribute vec3 normal;
+
 uniform mat4 ModelViewProjectionMatrix;
+uniform mat4 ModelViewMatrix;
+uniform vec3 lightPosition;   // вже у системі координат камери
+uniform vec4 color;           // базовий колір матеріалу
+
+varying vec4 vColor;
 
 void main() {
-    gl_Position = ModelViewProjectionMatrix * vec4(vertex,1.0);
+    vec3 pos = (ModelViewMatrix * vec4(vertex, 1.0)).xyz;
+    vec3 N = normalize((ModelViewMatrix * vec4(normal, 0.0)).xyz);
+    vec3 L = normalize(lightPosition - pos);
+    vec3 V = vec3(0.0, 0.0, 1.0);          // напрямок на глядача
+    vec3 R = reflect(-L, N);
+
+    float diff = max(dot(N, L), 0.0);
+    float spec = 0.0;
+    if (diff > 0.0) {
+        spec = pow(max(dot(R, V), 0.0), 32.0);
+    }
+
+    vec3 ambient  = 0.2 * color.rgb;
+    vec3 diffuse  = 0.8 * diff * color.rgb;
+    vec3 specular = 0.6 * spec * vec3(1.0);
+
+    vColor = vec4(ambient + diffuse + specular, 1.0);
+    gl_Position = ModelViewProjectionMatrix * vec4(vertex, 1.0);
 }`;
 
-
-// Fragment shader
+// Fragment shader (просто бере інтерпольований колір)
 const fragmentShaderSource = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
    precision highp float;
@@ -18,7 +39,8 @@ const fragmentShaderSource = `
    precision mediump float;
 #endif
 
-uniform vec4 color;
+varying vec4 vColor;
+
 void main() {
-    gl_FragColor = color;
+    gl_FragColor = vColor;
 }`;
